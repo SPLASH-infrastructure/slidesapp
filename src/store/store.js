@@ -1,6 +1,6 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
-import { DateTime, Duration } from 'luxon';
+import { DateTime } from 'luxon';
 const axios = require('axios');
 const parseString = require('xml2js').parseString;
 
@@ -52,8 +52,7 @@ export default new Vuex.Store({
       events: undefined,
       ready: false,
       room: "Swissotel Chicago | Zurich A",
-      message_title: "Message A",
-      message_subtitle: "Message B",
+      on_site: true,
       video_active: false,
       video_file: null,
       video_head_positions: {},
@@ -66,14 +65,14 @@ export default new Vuex.Store({
             state.ready = true;
         },
         updateTime(state) {
-            state.now = state.now.plus(Duration.fromObject({ seconds: 30 })); // DateTime.now(); //
+            state.now = DateTime.now(); //state.now.plus(Duration.fromObject({ seconds: 30 })); // 
         },
         playVideo(state, video_file) {
             state.video_active = true;
             state.video_file = video_file;
         },
-        saveVideoStatus(state, video_file, video_time) {
-            state.video_head_positions[video_file] = video_time;
+        saveVideoStatus(state, video_info) {
+            state.video_head_positions[video_info.video_file] = video_info.video_time;
         }
     },
     actions: {
@@ -107,6 +106,7 @@ export default new Vuex.Store({
             if (!state.events) return;
             let next_or_now = getters.next_or_now_event(state.now);
             if (next_or_now == null) return;
+            if (!state.on_site) return;
             for (const ts of next_or_now.timeslots) {
                 if (ts.start_time > state.last_video_update && ts.start_time < state.now) {
                     commit("playVideo", "edit.mp4")
@@ -117,6 +117,9 @@ export default new Vuex.Store({
         }
     },
     getters: {
+        video_head_pos: (state) => (video_file) => {
+            return (video_file in state.video_head_positions) ? state.video_head_positions[video_file] : 0;
+        },
         next_event: (state) => (date) => {
             let next = null;
             if (!state.events) return null;
@@ -134,6 +137,17 @@ export default new Vuex.Store({
                 if (!evt.has_events) continue;
                 if (next == null && date < evt.ending_time) next = evt;
                 if (next && date < evt.ending_time && evt.ending_time < next.ending_time) next = evt;
+            }
+            return next;
+        },
+        next_or_now_timeslot: (state, getters) => (date)  => {
+            let next_session = getters.next_or_now_event(date);
+            let next = null;
+            if (next_session == null) return null;
+            for (const ts of next_session.timeslots) {
+                if (next == null && date < ts.end_time) next = ts;
+                if (next && date < ts.end_time && ts.end_time < next.end_time) next = ts;
+                
             }
             return next;
         },

@@ -3,6 +3,7 @@
         <Background class="background"/>
         <Sidebar class="sidebar"/>
         <Nextup class="nextup"/>
+        <Messages class="messages"/>
         <Sponsors/>
     </div>
 </template>
@@ -11,13 +12,15 @@ import Background from "./Background.vue";
 import Sidebar from "./Sidebar.vue";
 import Nextup from "./Nextup.vue";
 import Sponsors from "./Sponsors.vue";
+import Messages from "./Messages.vue";
 
 export default {
     components: {
         Background,
         Sidebar,
         Nextup,
-        Sponsors
+        Sponsors,
+        Messages
     }
 }
 </script>
@@ -32,5 +35,12 @@ export default {
   top: 0;
   width: 100%;
   color: white;
+}
+.messages {
+  position: absolute;
+  top: 200px;
+  left: 1250px;
+  width: 650px;
+  height: 750px;
 }
 </style>

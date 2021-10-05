@@ -29,6 +29,7 @@ export default {
     const player = this.player = videojs(this.$refs.videoplayer, this.options, function onPlayerReady() {
         //player.muted(true);
         player.src({type:'video/mp4', src:store.state.video_file});
+        player.currentTime(store.getters.video_head_pos(store.state.video_file));
         player.play();
         console.log(`playing ${store.state.video_file}`)
     })
@@ -50,19 +51,22 @@ export default {
       if (this.ready) {
         player.src({type:'video/mp4', src:store.state.video_file});
         player.pause();
-        player.setCurrentTime(0);
+        console.log(`restoring time ${store.getters.video_head_pos(store.state.video_file)}`)
+        player.setCurrentTime(store.getters.video_head_pos(store.state.video_file));
         player.play();
       }})
   },
     beforeDestroy() {
-        if (this.player) {
-          if (this.player.currentTime() < this.player.duration()) {
-            this.$store.commit("saveVideoStatus", this.player.video_file, this.player.currentTime());
-          } else {
-            this.$store.commit("saveVideoStatus", this.player.video_file, 0);
-          }
-          this.player.dispose()
+      if (this.player) {
+        let currentTime = this.player.currentTime();
+        let currentFile = this.$store.state.video_file;
+        if (currentTime < this.player.duration()) {
+          this.$store.commit("saveVideoStatus", {video_file: currentFile, video_time: currentTime});
+        } else {
+          this.$store.commit("saveVideoStatus", {video_file: currentFile, video_time: 0});
         }
+        this.player.dispose()
+      }
     }
 }
 </script>

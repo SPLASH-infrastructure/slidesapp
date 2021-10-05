@@ -1,28 +1,60 @@
 <template>
-  <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
-  </div>
+  <v-app id="app">
+    <v-main id="main">
+      <component v-bind:is="mainview"></component>
+    </v-main>
+  </v-app>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import VideoPlayer from './components/VideoPlayer.vue';
+import Filler from './components/Filler.vue';
+
 
 export default {
   name: 'App',
-  components: {
-    HelloWorld
+  mounted() {
+    this.$store.dispatch("loadXML")
+    setInterval(() => { this.$store.commit("updateTime"); this.$store.dispatch("checkSchedule") }, 1000/60);
+  },
+  computed: {
+    mainview() {
+      if (this.$store.state.video_active)
+        return VideoPlayer
+      else 
+        return Filler
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap');
+
+.v-current-time {
+  height: 2px;
+  background-color: #ea4335;
+  position: absolute;
+  left: -1px;
+  right: 0;
+  pointer-events: none;
+
+  &.first::before {
+    content: '';
+    position: absolute;
+    background-color: #ea4335;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-top: -5px;
+    margin-left: -6.5px;
   }
 }
-</script>
-
-<style>
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  height:100vh;
+}
+#main {
+  position: absolute;
+  height: 1080px;
+  width: 1920px
 }
 </style>

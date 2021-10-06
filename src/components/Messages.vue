@@ -11,12 +11,14 @@
 export default {
     computed: {
         time_remaining() {
-            return (this.$store.getters.next_or_now_timeslot(this.$store.state.now).end_time.diff(this.$store.state.now)).shiftTo('minutes', 'seconds');
+            if (!this.$store.state.current_timeslot) return null;
+            return (this.$store.state.current_timeslot.end_time.diff(this.$store.state.now)).shiftTo('minutes', 'seconds');
         },
         remaining_number() {
             if (!this.$store.state.ready) return "";
             let breaks = [5, 10, 15, 30, 60, 90];
             let remaining = this.time_remaining;
+            if (!remaining) return "";
             let shown_remaining = Math.min(...breaks.filter(brk=>brk > remaining.minutes))
             if (!isFinite(shown_remaining)) {
                 if (remaining.minutes > 0)
@@ -29,12 +31,14 @@ export default {
         remaining_units() {
             if (!this.$store.state.ready) return "";
             let remaining = this.time_remaining;
+            if (!remaining) return "";
             if (remaining.minutes > 0) return "minutes";
             return "seconds";
         },
         hideRemaining() {
             if (!this.$store.state.ready) return true;
-            return this.$store.getters.next_or_now_timeslot(this.$store.state.now).start_time > this.$store.state.now;
+            if (!this.$store.state.current_timeslot) return true;
+            return false;
         }
     }
 }

@@ -43,10 +43,13 @@ export default {
   },
   created() {
     this.$store.watch(x=>x.events, this.calUpdate)
-    this.$store.watch(x=>x.now, this.calUpdate)
+    this.$store.watch(x=>x.current_event, this.calUpdate)
+    this.$store.watch(x=>x.next_event, this.calUpdate)
+    this.$store.watch(x=>x.current_timeslot, this.calUpdate)
   },
   mounted () {
     this.ready = true;
+    this.calUpdate();
   },
   methods: {
     updateTime() {
@@ -58,10 +61,12 @@ export default {
     calUpdate() {
       if (!this.ready || !this.$store) return;
       const newEvts = [];
-      let next_event = this.$store.getters.next_or_now_event(this.$store.state.now);
-      if (next_event == this.last_event && 
-        (this.calendarOptions.events.find(x=>x.end < this.$store.state.now.toJSDate()) === undefined || this.last_update > next_event.starting_time)) return;
-      if (next_event == null) {
+      let evt = this.$store.state.current_event;
+      if (evt == null) {
+        evt = this.$store.state.next_event;
+      }
+      console.log(evt)
+      if (evt == null) {
         this.calendarOptions.events = [];
         return;
       }
@@ -69,7 +74,7 @@ export default {
       //newEvts.push({ title: evt.title, start: evt.starting_time.toJSDate(), end: evt.ending_time.toJSDate()});
       let vidnum = 1;
       let vids = ["edit.mp4", "edit2.mp4"];
-      for (const ts of next_event.timeslots) {
+      for (const ts of evt.timeslots) {
         if (ts.end_time < this.$store.state.now) {
           continue;
         }
@@ -79,7 +84,7 @@ export default {
           classes.push("live-event");
         } 
         console.log("update")
-        if (ts.start_time < this.$store.state.now && this.$store.state.now < ts.end_time) {
+        if (ts == this.$store.state.current_timeslot) {
           classes.push("current-event");
         } else {
           classes.push("upcoming-event")
@@ -91,8 +96,8 @@ export default {
           classNames: classes,
           video_file: vid});
       }
-      this.cal.getApi().gotoDate(next_event.starting_time.toJSDate());
-      this.last_event = next_event;
+      this.cal.getApi().gotoDate(evt.starting_time.toJSDate());
+      this.last_event = evt;
       this.last_update = this.$store.state.now;
       this.calendarOptions.events = newEvts;
     },

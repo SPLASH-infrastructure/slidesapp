@@ -15,7 +15,6 @@ export default {
     data() {
         return {
             total_time: 90,
-            next_event_title: null,
             svg: undefined,
             scale: undefined,
             axis: undefined,
@@ -30,9 +29,14 @@ export default {
     },
     computed : {
         event_desc: function() {
-            let next_event = this.$store.getters.next_or_now_event(this.$store.state.now);
-            if (next_event && next_event.starting_time < this.$store.state.now) return "NOW:";
-            else return "NEXT:";
+            if (this.$store.state.current_event) return "NOW:";
+            else if (this.$store.state.next_event) return "NEXT:";
+            else return "";
+        },
+        next_event_title: function() {
+            if (this.$store.state.current_event) return this.$store.state.current_event.title;
+            else if (this.$store.state.next_event) return this.$store.state.next_event.title;
+            else return "";
         }
 
     },
@@ -72,13 +76,6 @@ export default {
                 // hide the bar
                 return
             }
-            let next_event = this.$store.getters.next_or_now_event(this.$store.state.now);
-            if (next_event == null) {
-                this.next_event_title = null;
-                // hide the bar
-                return
-            }
-            this.next_event_title = next_event.title;
             /*
             let time_remaining = next_event.starting_time.diff(this.$store.state.now).shiftTo('minutes')
             let minutes_remaining = time_remaining.minutes

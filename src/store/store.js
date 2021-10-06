@@ -56,13 +56,27 @@ export default new Vuex.Store({
       video_active: false,
       video_file: null,
       video_head_positions: {},
-      last_video_update: DateTime.now,
+      current_event: null,
+      next_event: null,
+      current_timeslot: null,
+      last_schedule_update: DateTime.now,
       now: DateTime.now()
     },
     mutations: {
         setEventData(state, data) {
             state.events = data;
             state.ready = true;
+        },
+        setCurrentEvent(state, event) {
+            if (event != state.current_event) // don't update if it's the same
+                state.current_event = event;
+        },
+        setNextEvent(state, event) {
+            if (event != state.next_event) // don't update if it's the same
+                state.next_event = event;
+        },
+        setCurrentTimeslot(state, ts) {
+            state.current_timeslot = ts;
         },
         updateTime(state) {
             state.now = state.now.plus(Duration.fromObject({ seconds: 5 })); // DateTime.now(); //
@@ -102,54 +116,37 @@ export default new Vuex.Store({
                 });
             });
         },
-        checkSchedule({ getters, commit, state }) {
+        checkSchedule({ commit, state }) {
             if (!state.events) return;
-            let next_or_now = getters.next_or_now_event(state.now);
-            if (next_or_now == null) return;
-            if (!state.on_site) return;
-            for (const ts of next_or_now.timeslots) {
-                if (ts.start_time > state.last_video_update && ts.start_time < state.now) {
-                    commit("playVideo", "edit.mp4")
-                    break;
+            let now = null;
+            let next = null;
+            for (const evt of state.events) {
+                if (!evt.has_events) continue;
+                if (evt.starting_time <= state.now && state.now < evt.ending_time) {
+                    now = evt;
+                }
+                if (evt.starting_time >= state.now && (next == null || evt.starting_time < next.starting_time)) {
+                    next = evt;
                 }
             }
-            state.last_video_update = state.now;
+            commit('setCurrentEvent', now);
+            commit('setNextEvent', next);
+            if (now == null) {
+                commit('setCurrentTimeslot', null); 
+            } else {
+                for (const ts of now.timeslots) {
+                    if (ts.start_time <= state.now && state.now < ts.end_time) {
+                        commit('setCurrentTimeslot', ts);
+                        break;
+                    }
+                }
+            }
+            state.last_schedule_update = state.now;
         }
     },
     getters: {
         video_head_pos: (state) => (video_file) => {
             return (video_file in state.video_head_positions) ? state.video_head_positions[video_file] : 0;
-        },
-        next_event: (state) => (date) => {
-            let next = null;
-            if (!state.events) return null;
-            for (const evt of state.events) {
-                if (!evt.has_events) continue;
-                if (next == null && date < evt.starting_time) next = evt;
-                if (next && date < evt.starting_time && evt.starting_time < next.starting_time) next = evt;
-            }
-            return next;
-        },
-        next_or_now_event: (state) => (date)  => {
-            let next = null;
-            if (!state.events) return null;
-            for (const evt of state.events) {
-                if (!evt.has_events) continue;
-                if (next == null && date < evt.ending_time) next = evt;
-                if (next && date < evt.ending_time && evt.ending_time <= next.ending_time) next = evt;
-            }
-            return next;
-        },
-        next_or_now_timeslot: (state, getters) => (date)  => {
-            let next_session = getters.next_or_now_event(date);
-            let next = null;
-            if (next_session == null) return null;
-            for (const ts of next_session.timeslots) {
-                if (next == null && date < ts.end_time) next = ts;
-                if (next && date < ts.end_time && ts.end_time < next.end_time) next = ts;
-                
-            }
-            return next;
-        },
+        }
     }
 })

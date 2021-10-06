@@ -1,6 +1,6 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
-import { DateTime } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 const axios = require('axios');
 const parseString = require('xml2js').parseString;
 
@@ -65,7 +65,7 @@ export default new Vuex.Store({
             state.ready = true;
         },
         updateTime(state) {
-            state.now = DateTime.now(); //state.now.plus(Duration.fromObject({ seconds: 30 })); // 
+            state.now = state.now.plus(Duration.fromObject({ seconds: 5 })); // DateTime.now(); //
         },
         playVideo(state, video_file) {
             state.video_active = true;
@@ -136,7 +136,7 @@ export default new Vuex.Store({
             for (const evt of state.events) {
                 if (!evt.has_events) continue;
                 if (next == null && date < evt.ending_time) next = evt;
-                if (next && date < evt.ending_time && evt.ending_time < next.ending_time) next = evt;
+                if (next && date < evt.ending_time && evt.ending_time <= next.ending_time) next = evt;
             }
             return next;
         },

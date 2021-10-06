@@ -27,7 +27,7 @@ export default {
   mounted() {
     const store = this.$store;
     const player = this.player = videojs(this.$refs.videoplayer, this.options, function onPlayerReady() {
-        //player.muted(true);
+        player.muted(true);
         player.src({type:'video/mp4', src:store.state.video_file});
         player.currentTime(store.getters.video_head_pos(store.state.video_file));
         player.play();

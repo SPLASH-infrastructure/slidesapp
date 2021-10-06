@@ -1,24 +1,64 @@
 <template>
     <div class="message-holder">
-        Hello World from the Messages Section!
-        {{minutes_remaining}}
+        <div class="time-remaining" v-bind:class="{ hideRemaining: hideRemaining }">
+            <span id="remaining-number">{{remaining_number}}</span><br>
+            <span id="minutes-text">{{remaining_units}} remaining</span>
+        </div>
     </div>
 </template>
 <script>
-import { DateTime } from 'luxon';
 
 export default {
     computed: {
-        minutes_remaining() {
-            let remaining = (this.$store.getters.next_or_now_timeslot(this.$store.state.now).end_time.diff(DateTime.now())).shiftTo('minutes', 'seconds');
-            return remaining.minutes
+        time_remaining() {
+            return (this.$store.getters.next_or_now_timeslot(this.$store.state.now).end_time.diff(this.$store.state.now)).shiftTo('minutes', 'seconds');
+        },
+        remaining_number() {
+            if (!this.$store.state.ready) return "";
+            let breaks = [5, 10, 15, 30, 60, 90];
+            let remaining = this.time_remaining;
+            let shown_remaining = Math.min(...breaks.filter(brk=>brk > remaining.minutes))
+            if (!isFinite(shown_remaining)) {
+                if (remaining.minutes > 0)
+                    shown_remaining = Math.ceil(remaining.minutes / 30) * 30;
+                else
+                    shown_remaining = remaining.seconds;
+            }
+            return `< ${shown_remaining}`;
+        },
+        remaining_units() {
+            if (!this.$store.state.ready) return "";
+            let remaining = this.time_remaining;
+            if (remaining.minutes > 0) return "minutes";
+            return "seconds";
+        },
+        hideRemaining() {
+            if (!this.$store.state.ready) return true;
+            return this.$store.getters.next_or_now_timeslot(this.$store.state.now).start_time > this.$store.state.now;
         }
     }
 }
 </script>
 
 <style>
-.message-holder {
+#remaining-number {
     color: white;
+    font-size: 120pt;
+}
+.hideRemaining {
+    display: none;
+}
+.message {
+    color: white;
+    background: rgba(0, 0, 255, 0.8);
+    font-size: 50px;
+    margin: 10px;
+}
+.time-remaining {
+    text-align: center;
+    color: white;
+    background: rgba(0, 0, 0, 0.4);
+    font-size: 50px;
+    margin: 10px;
 }
 </style>

@@ -21,6 +21,7 @@ export default {
     return {
       ready: false,
       last_event: null,
+      last_update: null,
       calendarOptions: {
         plugins: [ listPlugin ],
         headerToolbar: {start: '', end: ''},
@@ -58,11 +59,13 @@ export default {
       if (!this.ready || !this.$store) return;
       const newEvts = [];
       let next_event = this.$store.getters.next_or_now_event(this.$store.state.now);
-      if (next_event == this.last_event && this.calendarOptions.events.find(x=>x.end < this.$store.state.now.toJSDate()) === undefined) return;
+      if (next_event == this.last_event && 
+        (this.calendarOptions.events.find(x=>x.end < this.$store.state.now.toJSDate()) === undefined || this.last_update > next_event.starting_time)) return;
       if (next_event == null) {
         this.calendarOptions.events = [];
         return;
       }
+      if (!this.cal) return;
       //newEvts.push({ title: evt.title, start: evt.starting_time.toJSDate(), end: evt.ending_time.toJSDate()});
       let vidnum = 1;
       let vids = ["edit.mp4", "edit2.mp4"];
@@ -75,6 +78,7 @@ export default {
         if (ts.live) {
           classes.push("live-event");
         } 
+        console.log("update")
         if (ts.start_time < this.$store.state.now && this.$store.state.now < ts.end_time) {
           classes.push("current-event");
         } else {
@@ -89,6 +93,7 @@ export default {
       }
       this.cal.getApi().gotoDate(next_event.starting_time.toJSDate());
       this.last_event = next_event;
+      this.last_update = this.$store.state.now;
       this.calendarOptions.events = newEvts;
     },
   },

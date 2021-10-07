@@ -21,7 +21,9 @@ class Timeslot {
         this.live = false;
         if (badges !== undefined) {
             for (const badge of badges[0].badge) {
-                if (badge.$ && badge.$.property && badge.$.property == "Event Form") this.live = badge._ == "Mixed"
+                if (badge.$ && badge.$.property && badge.$.property == "Event Form") {
+                    this.live = (badge._ == "In-Person") || (badge._ == "Mixed")
+                }
             }
         }
     }
@@ -31,6 +33,7 @@ class Subevent {
     constructor(xml_subevent, tz_id) {
         this.title = xml_subevent.title[0]
         this.track = xml_subevent.tracks[0]
+        console.log(xml_subevent.timeslot.map(x=>x.title[0]))
         this.timeslots = xml_subevent.timeslot
                         .filter(x=>typeof x.event_id !== 'undefined')
                         .filter(x=>typeof x.start_time !== 'undefined').map(x=>new Timeslot(x, tz_id));
@@ -52,7 +55,7 @@ export default new Vuex.Store({
       events: undefined,
       ready: false,
       room: "Swissotel Chicago | Zurich A",
-      on_site: true,
+      on_site: false,
       video_active: false,
       video_file: null,
       video_head_positions: {},
@@ -79,7 +82,7 @@ export default new Vuex.Store({
             state.current_timeslot = ts;
         },
         updateTime(state) {
-            state.now = state.now.plus(Duration.fromObject({ seconds: 5 })); // DateTime.now(); //
+            state.now = state.now.plus(Duration.fromObject({ seconds: 30 })); // DateTime.now(); //
         },
         playVideo(state, video_file) {
             state.video_active = true;

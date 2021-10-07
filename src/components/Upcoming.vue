@@ -25,10 +25,11 @@ export default {
       calendarOptions: {
         plugins: [ listPlugin ],
         headerToolbar: {start: '', end: ''},
-        initialView: 'listDay',
-        nowIndicator: true,
+        initialView: 'list',
+        duration: {days: 2},
         slotMinTime: "00:00:00",
         slotMaxTime: '36:00:00',
+        nextDayThreshold: '20:00:00',
         dayHeaders: false,
         listDayFormat: false,
         events: [], 
@@ -65,7 +66,6 @@ export default {
       if (evt == null) {
         evt = this.$store.state.next_event;
       }
-      console.log(evt)
       if (evt == null) {
         this.calendarOptions.events = [];
         return;
@@ -83,7 +83,6 @@ export default {
         if (ts.live) {
           classes.push("live-event");
         } 
-        console.log("update")
         if (ts == this.$store.state.current_timeslot) {
           classes.push("current-event");
         } else {

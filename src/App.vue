@@ -16,6 +16,12 @@ export default {
   mounted() {
     this.$store.dispatch("loadXML")
     setInterval(() => { this.$store.commit("updateTime"); this.$store.dispatch("checkSchedule") }, 1000/60);
+    let store = this.$store;
+    this.$store.watch(store=>store.current_timeslot, (nevt) => {
+      if (nevt && !nevt.live && store.state.on_site) {
+        store.commit('playVideo', "edit.mp4");
+      }
+    });
   },
   computed: {
     mainview() {

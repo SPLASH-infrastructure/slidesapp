@@ -20,6 +20,7 @@
     "get-google-fonts": "^1.2.2",
     "luxon": "^2.0.2",
     "vue": "^2.6.11",
+    "vue-router": "^3.5.2",
     "vuetify": "^2.4.0",
     "vuex": "^3.6.2",
     "xml2js": "^0.4.23"

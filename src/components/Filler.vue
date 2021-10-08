@@ -12,7 +12,6 @@ import Background from "./Background.vue";
 import Sidebar from "./Sidebar.vue";
 import Nextup from "./Nextup.vue";
 import Sponsors from "./Sponsors.vue";
-import Messages from "./Messages.vue";
 
 export default {
     components: {

@@ -17,7 +17,7 @@ export default {
       if (nevt && !nevt.live && store.state.on_site) {
         this.$router.push({ path: `/player/${nevt.event_id}`});
       }
-      if (nevt && store.state.on_site) {
+      if (nevt && nevt.live && store.state.on_site) {
         this.$router.push({ path: `/filler/remaining` })
       } else if (!nevt) {
         this.$router.push({ path: `/filler` })

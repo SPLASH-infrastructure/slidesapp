@@ -16,6 +16,7 @@ class Timeslot {
             this.people = []
         this.start_time = DateTime.fromFormat(`${xml_timeslot.date} ${xml_timeslot.start_time}`, "yyyy/MM/dd hh:mm", tz_obj)
         this.end_time = DateTime.fromFormat(`${xml_timeslot.end_date} ${xml_timeslot.end_time}`, "yyyy/MM/dd hh:mm", tz_obj)
+        this.event_id = xml_timeslot.event_id;
         
         let badges = xml_timeslot.badges;
         this.live = false;
@@ -31,9 +32,9 @@ class Timeslot {
 }
 class Subevent {
     constructor(xml_subevent, tz_id) {
-        this.title = xml_subevent.title[0]
-        this.track = xml_subevent.tracks[0]
-        console.log(xml_subevent.timeslot.map(x=>x.title[0]))
+        this.title = xml_subevent.title[0];
+        this.track = xml_subevent.tracks[0];
+        this.room = xml_subevent.room;
         this.timeslots = xml_subevent.timeslot
                         .filter(x=>typeof x.event_id !== 'undefined')
                         .filter(x=>typeof x.start_time !== 'undefined').map(x=>new Timeslot(x, tz_id));
@@ -55,9 +56,9 @@ export default new Vuex.Store({
       events: undefined,
       ready: false,
       room: "Swissotel Chicago | Zurich A",
-      on_site: false,
+      on_site: true,
       video_active: false,
-      video_file: null,
+      video_file: "edit.mp4",
       video_head_positions: {},
       current_event: null,
       next_event: null,
@@ -111,7 +112,6 @@ export default new Vuex.Store({
                         //Do something
                     } else {
                         const parsed = result.event.subevent
-                            .filter(x=>x.room == this.state.room)
                             .map(x=>new Subevent(x, result.event.timezone_id[0]))
                         offset(parsed);
                         context.commit('setEventData', parsed)
@@ -123,7 +123,7 @@ export default new Vuex.Store({
             if (!state.events) return;
             let now = null;
             let next = null;
-            for (const evt of state.events) {
+            for (const evt of state.events.filter(x=>x.room == state.room)) {
                 if (!evt.has_events) continue;
                 if (evt.starting_time <= state.now && state.now < evt.ending_time) {
                     now = evt;

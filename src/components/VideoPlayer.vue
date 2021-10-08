@@ -24,8 +24,16 @@ export default {
       return this.ready ? this.$refs.videoplayer : null
     }
   },
+  watch: {
+    $route(to, from) {
+      this.player.src({type:'video/mp4', src:this.$store.state.video_file});
+      this.player.currentTime(0);
+      this.player.play();
+    }
+  },
   mounted() {
     const store = this.$store;
+    const router = this.$router;
     const player = this.player = videojs(this.$refs.videoplayer, this.options, function onPlayerReady() {
         player.muted(true);
         player.src({type:'video/mp4', src:store.state.video_file});
@@ -33,7 +41,7 @@ export default {
         player.play();
         console.log(`playing ${store.state.video_file}`)
     })
-    player.on("ended", () => this.$store.state.video_active = false)
+    player.on("ended", () => router.push(`/filler`))
     var Button = videojs.getComponent('Button');
     var closeButton = videojs.extend(Button, {
       constructor: function() {
@@ -41,7 +49,7 @@ export default {
         this.el_.innerText = "✖"
       },
       handleClick: function() {
-        store.state.video_active = false
+        router.push(`/filler/remaining`);
       }
     });
     videojs.registerComponent('closeButton', closeButton);

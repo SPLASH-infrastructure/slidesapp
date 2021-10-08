@@ -17,7 +17,7 @@ export default {
     }
   },
   data() {
-    let store = this.$store;
+    let router = this.$router;
     return {
       ready: false,
       last_event: null,
@@ -37,7 +37,8 @@ export default {
           return DateTime.fromJSDate(time.start.marker).toFormat("h:mm");
         },
         eventClick: function (info) {
-          store.commit('playVideo', info.event.extendedProps.video_file);
+          router.push(`/player/${info.event.extendedProps.event_id}`)
+          //store.commit('playVideo', info.event.extendedProps.video_file);
         }
       }
     }
@@ -72,13 +73,10 @@ export default {
       }
       if (!this.cal) return;
       //newEvts.push({ title: evt.title, start: evt.starting_time.toJSDate(), end: evt.ending_time.toJSDate()});
-      let vidnum = 1;
-      let vids = ["edit.mp4", "edit2.mp4"];
       for (const ts of evt.timeslots) {
         if (ts.end_time < this.$store.state.now) {
           continue;
         }
-        let vid = vids[vidnum++ % vids.length]
         let classes = ["timeslot-background"]
         if (ts.live) {
           classes.push("live-event");
@@ -93,7 +91,7 @@ export default {
           start: ts.start_time.toJSDate(), 
           end: ts.end_time.toJSDate(), 
           classNames: classes,
-          video_file: vid});
+          event_id: ts.event_id});
       }
       this.cal.getApi().gotoDate(evt.starting_time.toJSDate());
       this.last_event = evt;

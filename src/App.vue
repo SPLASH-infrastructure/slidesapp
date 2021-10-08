@@ -1,16 +1,12 @@
 <template>
   <v-app id="app">
     <v-main id="main">
-      <component v-bind:is="mainview"></component>
+      <router-view></router-view>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import VideoPlayer from './components/VideoPlayer.vue';
-import Filler from './components/Filler.vue';
-
-
 export default {
   name: 'App',
   mounted() {
@@ -19,17 +15,14 @@ export default {
     let store = this.$store;
     this.$store.watch(store=>store.current_timeslot, (nevt) => {
       if (nevt && !nevt.live && store.state.on_site) {
-        store.commit('playVideo', "edit.mp4");
+        this.$router.push({ path: `/player/${nevt.event_id}`});
+      }
+      if (nevt && store.state.on_site) {
+        this.$router.push({ path: `/filler/remaining` })
+      } else if (!nevt) {
+        this.$router.push({ path: `/filler` })
       }
     });
-  },
-  computed: {
-    mainview() {
-      if (this.$store.state.video_active)
-        return VideoPlayer
-      else 
-        return Filler
-    }
   }
 };
 </script>

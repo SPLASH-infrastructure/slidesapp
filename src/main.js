@@ -1,14 +1,36 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
+import VueRouter from 'vue-router'
 import App from './App.vue'
 import vuetify from './plugins/vuetify'
 import store from './store/store'
 
+import VideoPlayer from './components/VideoPlayer.vue';
+import Filler from './components/Filler.vue';
+import TimeRemaining from './components/messages/TimeRemaining.vue';
+
 Vue.config.productionTip = false
 Vue.use(Vuex)
+Vue.use(VueRouter)
+
+const routes = [
+  { path: '/player/:event_id', component: VideoPlayer },
+  { path: '/filler', 
+    component: Filler,
+    children: [
+      {
+        path: 'remaining',
+        component: TimeRemaining
+      }
+    ] 
+  }
+];
+const router = new VueRouter({routes})
 
 new Vue({
   render: h => h(App),
   vuetify,
-  store: store
+  store: store,
+  router
 }).$mount('#app')
+router.replace("/filler")

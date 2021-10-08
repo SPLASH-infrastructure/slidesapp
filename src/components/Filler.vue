@@ -3,7 +3,7 @@
         <Background class="background"/>
         <Sidebar class="sidebar"/>
         <Nextup class="nextup"/>
-        <Messages class="messages"/>
+        <router-view class="messages"></router-view>
         <Sponsors/>
     </div>
 </template>
@@ -19,8 +19,7 @@ export default {
         Background,
         Sidebar,
         Nextup,
-        Sponsors,
-        Messages
+        Sponsors
     }
 }
 </script>

@@ -80,7 +80,9 @@ export default {
         let classes = ["timeslot-background"]
         if (ts.live) {
           classes.push("live-event");
-        } 
+        } else if (ts.remote) {
+          classes.push("remote-event");
+        }
         if (ts == this.$store.state.current_timeslot) {
           classes.push("current-event");
         } else {
@@ -229,5 +231,16 @@ table.fc-list-table {
   content: "";
   color: #BE1622;
   background-position: 0px 5px;
+}
+.remote-event::before {
+  background-image: url("~@/assets/trim-zoom.png");
+  display: table-cell;
+  background-size: 60px;
+  width: 60px; 
+  height: 50px;
+  font-weight: 800;
+  content: "";
+  color: #BE1622;
+  background-position: 0px 22px;
 }
 </style>

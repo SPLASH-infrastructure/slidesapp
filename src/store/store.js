@@ -17,6 +17,7 @@ class Timeslot {
         this.start_time = DateTime.fromFormat(`${xml_timeslot.date} ${xml_timeslot.start_time}`, "yyyy/MM/dd hh:mm", tz_obj)
         this.end_time = DateTime.fromFormat(`${xml_timeslot.end_date} ${xml_timeslot.end_time}`, "yyyy/MM/dd hh:mm", tz_obj)
         this.event_id = xml_timeslot.event_id;
+        this.remote = false;
         
         let badges = xml_timeslot.badges;
         this.live = false;
@@ -83,7 +84,7 @@ export default new Vuex.Store({
             state.current_timeslot = ts;
         },
         updateTime(state) {
-            state.now = state.now.plus(Duration.fromObject({ seconds: 30 })); // DateTime.now(); //
+            state.now = state.now.plus(Duration.fromObject({ seconds: 5 })); // DateTime.now(); //
         },
         playVideo(state, video_file) {
             state.video_active = true;

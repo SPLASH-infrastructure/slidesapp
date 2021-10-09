@@ -15,7 +15,16 @@ Vue.use(VueRouter)
 
 const routes = [
   { path: '/player/:event_id', component: VideoPlayer },
-  { path: '/filler', 
+  { path: '/filler/', 
+    component: Filler,
+    children: [
+      {
+        path: 'remaining',
+        component: TimeRemaining
+      }
+    ] 
+  },
+  { path: '/filler/zoom/:zoom_event_id', 
     component: Filler,
     children: [
       {

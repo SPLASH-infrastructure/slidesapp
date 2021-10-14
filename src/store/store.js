@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import { DateTime, Duration } from 'luxon';
+import format from "python-format-js";
 const axios = require('axios');
 const parseString = require('xml2js').parseString;
 
@@ -51,16 +52,38 @@ class Subevent {
     }
 }
 
+class ChairTimeslot {
+    constructor(xml_timeslot, tz_id) {
+        this.title = xml_timeslot.title
+        this.start_time = xml_timeslot.start
+        this.nominal_start = xml_timeslot.nominal_start
+        this.duration = xml_timeslot.duration 
+        this.nominal_duration = xml_timeslot.nominal_duration
+        this.session = xml_timeslot.session
+        this.is_mirror = xml_timeslot.is_mirror == "True"
+
+    }
+}
+
+class ChairRoom {
+    constructor(xml_room) {
+        
+    }
+}
+
 export default new Vuex.Store({
     state: {
       count: 0,
       events: undefined,
-      ready: false,
+      chair_evts: undefined,
+      config_loaded: false,
+
       room: "Swissotel Chicago | Zurich A",
       on_site: true,
       video_active: false,
       video_file: "edit.mp4",
       video_head_positions: {},
+
       current_event: null,
       next_event: null,
       current_timeslot: null,
@@ -71,6 +94,15 @@ export default new Vuex.Store({
         setEventData(state, data) {
             state.events = data;
             state.ready = true;
+        },
+        setRoom(state, room) {
+            state.room = room
+        },
+        setOnSite(state, is_onsite) {
+            state.on_site = is_onsite
+        },
+        setChairData(state, chair_data) {
+            state.chair_evts = chair_data
         },
         setCurrentEvent(state, event) {
             if (event != state.current_event) // don't update if it's the same
@@ -96,19 +128,40 @@ export default new Vuex.Store({
     },
     actions: {
         loadXML(context) {
+            function offset(evts) {
+                const first_time = DateTime.min(...evts.filter(evt=>evt.has_events).map(evt=>evt.starting_time));
+                const delay = DateTime.now().diff(first_time);
+                for (const evt of evts) {
+                    for (const ts of evt.timeslots) {
+                        ts.start_time = ts.start_time.plus(delay);
+                        ts.end_time = ts.end_time.plus(delay);
+                    }
+                }
+            }
+
+            axios.get("/config.xml").then((response) => {
+                parseString(response.data, (err, result) => {
+                    context.commit("setRoom", result.config.room[0])
+                    if ("onsite" in result.config) {
+                        context.commit("setOnSite", true)
+                    }
+                    if ("filler" in result.config) {
+                        context.commit("setOnSite", false);
+                    }
+                })
+            })
+            axios.get("/chair.xml").then((response) => {
+                parseString(response.data, (err, result) => {
+                    for (const room of result.room) {
+                        const room_timezone = room.timezone
+                        room_evts = room.event.map(x=>new ChairTimeslot(x, room_timezone))
+                    }
+                    context.commit("setChairData", result)
+                })
+            })
             axios.get('/schedule.xml').then((response) => {
                 // handle success
                 parseString(response.data, (err, result) => {
-                    function offset(evts) {
-                        const first_time = DateTime.min(...evts.filter(evt=>evt.has_events).map(evt=>evt.starting_time));
-                        const delay = DateTime.now().diff(first_time);
-                        for (const evt of evts) {
-                            for (const ts of evt.timeslots) {
-                                ts.start_time = ts.start_time.plus(delay);
-                                ts.end_time = ts.end_time.plus(delay);
-                            }
-                        }
-                    }
                     if(err) {
                         //Do something
                     } else {
@@ -149,6 +202,9 @@ export default new Vuex.Store({
         }
     },
     getters: {
+        ready: (state) => {
+            return state.chair_data != undefined && state.config_loaded
+        },
         video_head_pos: (state) => (video_file) => {
             return (video_file in state.video_head_positions) ? state.video_head_positions[video_file] : 0;
         }

@@ -6,12 +6,16 @@
 </template>
 <script>
 export default {
+    mounted() {
+        if (!this.$store.state.current_timeslot || !this.$store.state.on_site) this.$router.replace("/filler");
+    },
     computed: {
         time_remaining() {
             if (!this.$store.state.current_timeslot) return null;
             return (this.$store.state.current_timeslot.end_time.diff(this.$store.state.now)).shiftTo('minutes', 'seconds');
         },
         remaining_number() {
+            console.log(this.$store.state.ready)
             if (!this.$store.state.ready) return "";
             let breaks = [5, 10, 15, 30, 60, 90];
             let remaining = this.time_remaining;

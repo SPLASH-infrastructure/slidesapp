@@ -15,7 +15,7 @@ export default {
         options: {
             autoplay: true,
             controls: true,
-            sources: [ { src: "edit.mp4", type: "video/mp4" } ]
+            sources: [  ]
         }
     }
   },
@@ -26,22 +26,35 @@ export default {
   },
   watch: {
     $route(to, from) {
-      this.player.src({type:'video/mp4', src:this.$store.state.video_file});
+      this.player.src({type:'video/mp4', src:this.getCurrentVideo()});
       this.player.currentTime(0);
       this.player.play();
     }
   },
+  methods: {
+    getCurrentVideo() {
+      return "videos/" + this.$store.state.current_format.asset + ".mp4"
+    }
+  },
   mounted() {
+    if (!this.$store.state.on_site) this.$router.replace("/filler");
+    const self = this;
     const store = this.$store;
     const router = this.$router;
     const player = this.player = videojs(this.$refs.videoplayer, this.options, function onPlayerReady() {
         player.muted(true);
-        player.src({type:'video/mp4', src:store.state.video_file});
-        player.currentTime(store.getters.video_head_pos(store.state.video_file));
+        const video_file = self.getCurrentVideo()
+        player.src({type:'video/mp4', src:video_file});
+        player.currentTime(store.getters.video_head_pos(video_file));
         player.play();
-        console.log(`playing ${store.state.video_file}`)
+        console.log(`playing ${video_file}`)
     })
-    player.on("ended", () => router.push(`/filler`))
+    player.on("error", async (args) => {
+      console.log("error with args", args)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      router.push(`/filler/remaining`)
+    })
+    player.on("ended", () => router.push(`/filler/remaining`))
     var Button = videojs.getComponent('Button');
     var closeButton = videojs.extend(Button, {
       constructor: function() {
@@ -57,17 +70,18 @@ export default {
     player.getChild('controlBar').addChild('closeButton', {});
     this.$store.watch(store=>store.video_file, () => {
       if (this.ready) {
-        player.src({type:'video/mp4', src:store.state.video_file});
+        const video_file = this.getCurrentVideo()
+        player.src({type:'video/mp4', src:video_file});
         player.pause();
-        console.log(`restoring time ${store.getters.video_head_pos(store.state.video_file)}`)
-        player.setCurrentTime(store.getters.video_head_pos(store.state.video_file));
+        player.setCurrentTime(store.getters.video_head_pos(video_file));
         player.play();
       }})
   },
     beforeDestroy() {
       if (this.player) {
+        const video_file = this.getCurrentVideo()
         let currentTime = this.player.currentTime();
-        let currentFile = this.$store.state.video_file;
+        let currentFile = video_file;
         if (currentTime < this.player.duration()) {
           this.$store.commit("saveVideoStatus", {video_file: currentFile, video_time: currentTime});
         } else {

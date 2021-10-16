@@ -12,20 +12,10 @@ export default {
   mounted() {
     this.$store.dispatch("loadXML")
     setInterval(() => { this.$store.commit("updateTime"); this.$store.dispatch("checkSchedule") }, 1000/60);
-    let store = this.$store;
-    this.$store.watch(store=>store.current_timeslot, (nevt) => {
-      if (nevt && store.state.on_site) {
-        if (!nevt.live && !nevt.remote) {
-          this.$router.push({ path: `/player/${nevt.event_id}`});
-        } else if (nevt.live && !nevt.remote) {
-          this.$router.push({ path: `/filler/remaining` });
-        } else if (!nevt.live && nevt.remote) {
-          this.$router.push({ path: `/filler/zoom/${nevt.event_id}/remaining` });
-        }
-      } else if (!nevt) {
-        this.$router.push({ path: `/filler` })
-      }
-    });
+    this.$store.watch(store=>store.current_format, (nevt) => { 
+      if (this.$store && this.$store.state.on_site) 
+        this.$router.replace(nevt.route()) 
+      });
   }
 };
 </script>

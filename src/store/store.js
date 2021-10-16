@@ -1,45 +1,109 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import { DateTime, Duration } from 'luxon';
-import format from "python-format-js";
 const axios = require('axios');
 const parseString = require('xml2js').parseString;
 
 Vue.use(Vuex);
 
+const PLAY_TYPES = {}
 class Timeslot {
-    constructor(xml_timeslot, tz_name) {
-        const tz_obj = { zone: tz_name }
-        this.title = xml_timeslot.title[0]
-        if (xml_timeslot.persons)
-            this.people = xml_timeslot.persons[0].person
-        else 
-            this.people = []
-        this.start_time = DateTime.fromFormat(`${xml_timeslot.date} ${xml_timeslot.start_time}`, "yyyy/MM/dd hh:mm", tz_obj)
-        this.end_time = DateTime.fromFormat(`${xml_timeslot.end_date} ${xml_timeslot.end_time}`, "yyyy/MM/dd hh:mm", tz_obj)
-        this.event_id = xml_timeslot.event_id;
-        this.remote = false;
+    constructor(xml_timeslot) {
+        this.title = xml_timeslot.$.title
+        this.people = []
         
-        let badges = xml_timeslot.badges;
-        this.live = false;
-        if (badges !== undefined) {
-            for (const badge of badges[0].badge) {
-                if (badge.$ && badge.$.property && badge.$.property == "Event Form") {
-                    this.live = (badge._ == "In-Person") || (badge._ == "Mixed")
-                }
+        this.nominal_time = DateTime.fromISO(xml_timeslot.$.nominal_start)
+        this.start_time = DateTime.fromISO(xml_timeslot.$.start)
+        this.duration = Duration.fromMillis(parseFloat(xml_timeslot.$.duration) * 1000.0)
+        this.event_id = xml_timeslot.$.event_id;
+        this.is_mirror = xml_timeslot.$.is_mirror == "True"
+        
+        this.live = false
+        
+        const formats = []
+        for (const source_el of xml_timeslot.sources) {
+            for (const [source_type, source_obj] of Object.entries(source_el)) {
+                formats.push(new PLAY_TYPES[source_type](source_obj))
             }
         }
+        this.format = formats[0]
     }
 
+    get end_time() {
+        return this.start_time.plus(this.duration)
+    }
 }
+
+class EventType {
+    setState(router) {
+        console.log(`routing to ${this.route()}`)
+        router.replace(this.route())
+    }
+}
+class EmptyEvent extends EventType {
+    constructor() {
+        super() 
+        this.evt_type = "empty"
+    }
+    route() {
+        return `/filler`
+    }
+}
+class ZoomEvent extends EventType {
+    constructor(xml_event) {
+        super()
+        this.evt_type = "zoom"
+        this.url = xml_event[0]
+    }
+    route() {
+        return `/filler/zoom/${encodeURIComponent(this.url)}/remaining`
+    }
+    get live() {
+        return false;
+    }
+    get zoom() {
+        return true;
+    }
+}
+PLAY_TYPES["zoom"] = ZoomEvent
+class RoomEvent extends EventType {
+    constructor(xml_event) {
+        super()
+        this.evt_type = "room"
+    }
+    route() {
+        return `/filler/remaining`;
+    }
+    get live() {
+        return true;
+    }
+    get zoom() {
+        return false;
+    }
+}
+PLAY_TYPES["room"] = RoomEvent
+class PrerecordedEvent extends EventType {
+    constructor(xml_event) {
+        super()
+        this.evt_type = "recorded"
+        this.asset = xml_event[0]
+    }
+    route() {
+        return `/player/${this.asset}`
+    }
+
+    get live() {
+        return false;
+    }
+}
+PLAY_TYPES["asset"] = PrerecordedEvent
+
 class Subevent {
-    constructor(xml_subevent, tz_id) {
-        this.title = xml_subevent.title[0];
-        this.track = xml_subevent.tracks[0];
-        this.room = xml_subevent.room;
-        this.timeslots = xml_subevent.timeslot
-                        .filter(x=>typeof x.event_id !== 'undefined')
-                        .filter(x=>typeof x.start_time !== 'undefined').map(x=>new Timeslot(x, tz_id));
+    constructor(xml_subevent, room) {
+        this.title = xml_subevent.$.title;
+        this.track = xml_subevent.$.track;
+        this.room = room;
+        this.timeslots = xml_subevent.event.map(x=>new Timeslot(x));
     }
     get starting_time() {
         return DateTime.min(...this.timeslots.map(x=>x.start_time));
@@ -52,34 +116,19 @@ class Subevent {
     }
 }
 
-class ChairTimeslot {
-    constructor(xml_timeslot, tz_id) {
-        this.title = xml_timeslot.title
-        this.start_time = xml_timeslot.start
-        this.nominal_start = xml_timeslot.nominal_start
-        this.duration = xml_timeslot.duration 
-        this.nominal_duration = xml_timeslot.nominal_duration
-        this.session = xml_timeslot.session
-        this.is_mirror = xml_timeslot.is_mirror == "True"
-
-    }
-}
-
-class ChairRoom {
-    constructor(xml_room) {
-        
-    }
-}
-
 export default new Vuex.Store({
     state: {
       count: 0,
       events: undefined,
       chair_evts: undefined,
       config_loaded: false,
+      ready: false,
+      room: undefined,
 
-      room: "Swissotel Chicago | Zurich A",
-      on_site: true,
+      on_site: false,
+
+      current_format: new EmptyEvent(),
+
       video_active: false,
       video_file: "edit.mp4",
       video_head_positions: {},
@@ -101,9 +150,6 @@ export default new Vuex.Store({
         setOnSite(state, is_onsite) {
             state.on_site = is_onsite
         },
-        setChairData(state, chair_data) {
-            state.chair_evts = chair_data
-        },
         setCurrentEvent(state, event) {
             if (event != state.current_event) // don't update if it's the same
                 state.current_event = event;
@@ -114,6 +160,10 @@ export default new Vuex.Store({
         },
         setCurrentTimeslot(state, ts) {
             state.current_timeslot = ts;
+            if (ts)
+                state.current_format = ts.format;
+            else if (state.current_format.evt_type != "empty")
+                state.current_format = new EmptyEvent()
         },
         updateTime(state) {
             state.now = state.now.plus(Duration.fromObject({ seconds: 5 })); // DateTime.now(); //
@@ -134,7 +184,6 @@ export default new Vuex.Store({
                 for (const evt of evts) {
                     for (const ts of evt.timeslots) {
                         ts.start_time = ts.start_time.plus(delay);
-                        ts.end_time = ts.end_time.plus(delay);
                     }
                 }
             }
@@ -152,32 +201,25 @@ export default new Vuex.Store({
             })
             axios.get("/chair.xml").then((response) => {
                 parseString(response.data, (err, result) => {
-                    for (const room of result.room) {
-                        const room_timezone = room.timezone
-                        room_evts = room.event.map(x=>new ChairTimeslot(x, room_timezone))
+                    const rooms = {}
+                    for (const room of result.conference.room) {
+                        const roomname = room.$.name
+                        const subevents = []
+                        for (const session of room.session) {
+                            subevents.push(new Subevent(session, roomname))
+                        }
+                        offset(subevents)
+                        rooms[roomname] = subevents
                     }
-                    context.commit("setChairData", result)
+                    context.commit("setEventData", rooms)
                 })
             })
-            axios.get('/schedule.xml').then((response) => {
-                // handle success
-                parseString(response.data, (err, result) => {
-                    if(err) {
-                        //Do something
-                    } else {
-                        const parsed = result.event.subevent
-                            .map(x=>new Subevent(x, result.event.timezone_id[0]))
-                        offset(parsed);
-                        context.commit('setEventData', parsed)
-                    }
-                });
-            });
         },
         checkSchedule({ commit, state }) {
-            if (!state.events) return;
+            if (!state.events || !state.room) return;
             let now = null;
             let next = null;
-            for (const evt of state.events.filter(x=>x.room == state.room)) {
+            for (const evt of state.events[state.room]) {
                 if (!evt.has_events) continue;
                 if (evt.starting_time <= state.now && state.now < evt.ending_time) {
                     now = evt;

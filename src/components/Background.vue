@@ -6,6 +6,7 @@
         v-for="image in images"
         :key="image"
         eager
+        :transition="transition"
       >
         <v-sheet
           color="transparent"
@@ -17,7 +18,7 @@
             align="center"
             justify="center"
           >
-            <img v-bind:src="image"/>
+            <img v-bind:src="image" height="1080" width="1920"/>
           </v-row>
         </v-sheet>
       </v-carousel-item>
@@ -27,9 +28,13 @@
 export default {
     data: () => ({
         images: [
-            require("../assets/img/backgrounds/1080/breakfast-in-chicago.png"),
-            require("../assets/img/backgrounds/1080/breakfast-in-paris.png"),
-            require("../assets/img/backgrounds/1080/breakfast-in-seattle.png")
+            require("../assets/img/splash/1.jpg"),
+            require("../assets/img/splash/2.jpg"),
+            require("../assets/img/splash/3.jpg"),
+            require("../assets/img/splash/4.jpg"),
+            require("../assets/img/splash/5.jpg"),
+            require("../assets/img/splash/6.jpg"),
+            require("../assets/img/splash/7.jpg")
         ],
         colors: [
         'primary',
@@ -39,5 +44,13 @@ export default {
         'orange',
         ],
   }),
+  computed: {
+    transition() {
+      if (this.$store.state.on_site)
+        return "scroll-x-reverse-transition"
+      else
+        return "none"
+    }
+  }
 }
 </script>

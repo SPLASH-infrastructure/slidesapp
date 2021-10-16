@@ -17,7 +17,7 @@ export default {
     }
   },
   data() {
-    let router = this.$router;
+    let self = this
     return {
       ready: false,
       last_event: null,
@@ -37,8 +37,7 @@ export default {
           return DateTime.fromJSDate(time.start.marker).toFormat("h:mm");
         },
         eventClick: function (info) {
-          router.push(`/player/${info.event.extendedProps.event_id}`)
-          //store.commit('playVideo', info.event.extendedProps.video_file);
+          info.event.extendedProps.format.setState(self.$router);
         }
       }
     }
@@ -73,27 +72,37 @@ export default {
       }
       if (!this.cal) return;
       //newEvts.push({ title: evt.title, start: evt.starting_time.toJSDate(), end: evt.ending_time.toJSDate()});
+      var last_ts = null;
       for (const ts of evt.timeslots) {
         if (ts.end_time < this.$store.state.now) {
           continue;
         }
+        if (ts.event_id == last_ts && 
+            !(ts.format.zoom && 
+              this.$store.state.current_timeslot && 
+              this.$store.state.on_site && 
+              ts.event_id == this.$store.state.current_timeslot.event_id &&
+              ts.start_time < this.$store.state.now)) continue;
         let classes = ["timeslot-background"]
-        if (ts.live) {
-          classes.push("live-event");
-        } else if (ts.remote) {
-          classes.push("remote-event");
+        if (this.$store.state.on_site) {
+          if (ts.format.live) {
+            classes.push("live-event");
+          } else if (ts.format.zoom) {
+            classes.push("remote-event");
+          }
         }
-        if (ts == this.$store.state.current_timeslot) {
+        if (this.$store.state.current_timeslot && ts.event_id == this.$store.state.current_timeslot.event_id) {
           classes.push("current-event");
         } else {
           classes.push("upcoming-event")
         }
+        last_ts = ts.event_id
         newEvts.push({ 
           title: ts.title, 
           start: ts.start_time.toJSDate(), 
           end: ts.end_time.toJSDate(), 
           classNames: classes,
-          event_id: ts.event_id});
+          format: ts.format});
       }
       this.cal.getApi().gotoDate(evt.starting_time.toJSDate());
       this.last_event = evt;

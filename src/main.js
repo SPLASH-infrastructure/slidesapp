@@ -8,6 +8,7 @@ import store from './store/store'
 import VideoPlayer from './components/VideoPlayer.vue';
 import Filler from './components/Filler.vue';
 import TimeRemaining from './components/messages/TimeRemaining.vue';
+import Setup from './components/Setup.vue';
 
 Vue.config.productionTip = false
 Vue.use(Vuex)
@@ -32,6 +33,10 @@ const routes = [
         component: TimeRemaining
       }
     ] 
+  },
+  {
+    path: '/setup/room/:room_name/mode/:mode',
+    component: Setup
   }
 ];
 const router = new VueRouter({routes})

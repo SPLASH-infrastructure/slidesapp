@@ -187,18 +187,6 @@ export default new Vuex.Store({
                     }
                 }
             }
-
-            axios.get("/config.xml").then((response) => {
-                parseString(response.data, (err, result) => {
-                    context.commit("setRoom", result.config.room[0])
-                    if ("onsite" in result.config) {
-                        context.commit("setOnSite", true)
-                    }
-                    if ("filler" in result.config) {
-                        context.commit("setOnSite", false);
-                    }
-                })
-            })
             axios.get("/chair.xml").then((response) => {
                 parseString(response.data, (err, result) => {
                     const rooms = {}
